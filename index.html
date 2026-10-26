@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101418">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Eurocharm Label Check</title>
+<style>
+:root{
+  --bg:#101418; --panel:#1a2027; --line:#2c343d; --fg:#eef2f5; --muted:#9aa6b2; --accent:#4fa3e0;
+  --pass:#13a454; --fail:#d42a1f; --warn:#e3a21a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-tap-highlight-color:transparent;user-select:none;
+  padding:env(safe-area-inset-top,0) max(12px,env(safe-area-inset-right,0)) env(safe-area-inset-bottom,0) max(12px,env(safe-area-inset-left,0))}
+.app{display:flex;flex-direction:column;gap:12px;height:100%;padding-block:12px}
+.top{display:flex;align-items:center;gap:10px}
+.top h1{margin:0;font-size:1.05rem;font-weight:700;flex:1}
+.count{font-variant-numeric:tabular-nums;font-weight:700;font-size:1rem;display:flex;gap:12px}
+.count .p{color:var(--pass)} .count .f{color:var(--fail)}
+.icon{background:var(--panel);border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:8px 12px;font-size:.95rem}
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lab{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:grid;gap:6px}
+.lab h2{margin:0;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.slot{font-size:.8rem;display:flex;flex-direction:column;border-radius:6px;padding:4px 6px;background:#0c1014;min-height:42px}
+.slot span{color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em}
+.slot b{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600;word-break:break-all}
+.slot.cur{outline:2px solid var(--accent)}
+.prompt{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:10px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.eyebrow{font-size:1rem;font-weight:700;letter-spacing:.14em;color:var(--accent)}
+.big{font-size:2.3rem;font-weight:800;line-height:1.1}
+.hint{min-height:1.4em;color:var(--warn);font-weight:600;font-size:1.05rem}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{border:0;border-radius:10px;padding:16px 10px;font-size:1.05rem;font-weight:700;background:var(--panel);color:var(--fg);border:1px solid var(--line)}
+.btn.skip{grid-column:1/-1;background:var(--accent);color:#06131d;border:0;font-size:1.25rem;padding:20px}
+.scanline{display:flex;gap:8px;align-items:center;font-size:.8rem;color:var(--muted)}
+#scan{flex:1;min-width:0;background:#0c1014;border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:8px;font:inherit;font-family:ui-monospace,Menlo,Consolas,monospace}
+.result{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;text-align:center;padding:24px;z-index:5}
+.result.pass{background:var(--pass)} .result.fail{background:var(--fail)} .result.warn{background:var(--warn);color:#1a1200}
+.result .head{font-size:3.4rem;font-weight:900;line-height:1}
+.result .sub{font-size:1.25rem;font-weight:700}
+.result table{border-collapse:collapse;font-size:.9rem;background:rgba(0,0,0,.18);border-radius:8px;overflow:hidden}
+.result td{padding:5px 10px;text-align:left;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+.result td:first-child{font-family:inherit;font-weight:700;opacity:.85;white-space:nowrap}
+.result .next{font-size:1rem;opacity:.9}
+.sheet{position:fixed;inset:0;background:var(--bg);z-index:10;overflow:auto;padding:16px max(16px,env(safe-area-inset-right,0)) 32px max(16px,env(safe-area-inset-left,0));user-select:text}
+.sheet h2{margin:8px 0 12px}
+.sheet label{display:grid;gap:4px;margin-bottom:14px;font-weight:600}
+.sheet label small{color:var(--muted);font-weight:400}
+.sheet input[type=text]{background:var(--panel);border:1px solid var(--line);color:var(--fg);border-radius:6px;padding:10px;font-size:1rem}
+.sheet .row{display:flex;gap:10px;align-items:center;font-weight:600;margin-bottom:14px}
+.sheet .row input{width:22px;height:22px}
+.hist{font-size:.8rem;font-family:ui-monospace,Menlo,Consolas,monospace;display:grid;gap:6px}
+.hist div{background:var(--panel);border-left:4px solid var(--line);padding:6px 8px;border-radius:4px}
+.hist .pass{border-color:var(--pass)} .hist .fail{border-color:var(--fail)} .hist .warn{border-color:var(--warn)}
+.start{position:fixed;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
+.start button{font-size:1.5rem;padding:22px 40px;border-radius:14px;border:0;background:var(--accent);color:#06131d;font-weight:800}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="start" id="start">
+  <div class="big">Label Check</div>
+  <div style="color:var(--muted)">Eurocharm part + EXT match</div>
+  <button type="button" id="startBtn">Tap to start</button>
+</div>
+
+<div class="app" id="app">
+  <div class="top">
+    <h1>Label Check</h1>
+    <div class="count"><span class="p" id="cPass">✓ 0</span><span class="f" id="cFail">✕ 0</span></div>
+    <button class="icon" type="button" id="openSettings">Settings</button>
+  </div>
+
+  <div class="slots">
+    <div class="lab"><h2>Label 1</h2>
+      <div class="slot" id="s0"><span>Part no.</span><b>—</b></div>
+      <div class="slot" id="s1"><span>EXT / color</span><b>—</b></div>
+    </div>
+    <div class="lab"><h2>Label 2</h2>
+      <div class="slot" id="s2"><span>Part no.</span><b>—</b></div>
+      <div class="slot" id="s3"><span>EXT / color</span><b>—</b></div>
+    </div>
+  </div>
+
+  <div class="prompt">
+    <div class="eyebrow" id="eyebrow">LABEL 1</div>
+    <div class="big" id="big">Scan PART NO.</div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <div class="btns">
+    <button class="btn skip" type="button" id="skipBtn" hidden>No EXT on this label</button>
+    <button class="btn" type="button" id="undoBtn">Undo</button>
+    <button class="btn" type="button" id="resetBtn">Start over</button>
+  </div>
+
+  <div class="scanline"><span>Scan:</span><input id="scan" type="text" inputmode="none" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Scanner input"></div>
+</div>
+
+<div class="result" id="result" hidden>
+  <div class="head" id="rHead"></div>
+  <div class="sub" id="rSub"></div>
+  <table id="rTable"></table>
+  <div class="next">Scan Label 1 PART NO. for the next box, or tap anywhere</div>
+</div>
+
+<div class="sheet" id="settings" hidden>
+  <h2>Settings</h2>
+  <label>Part number prefixes to ignore <small>Letters a barcode may add in front of the part number (AIAG data identifier). Comma separated. Only ignored when the rest matches exactly.</small>
+    <input type="text" id="setPartPre"></label>
+  <label>EXT / color prefixes to ignore <small>Same idea for the EXT barcode.</small>
+    <input type="text" id="setExtPre"></label>
+  <div class="row"><input type="checkbox" id="setStrict"><span>Strict EXT: show yellow (not green) when only one label has an EXT</span></div>
+  <div class="row"><input type="checkbox" id="setAuto"><span>Accept scan without Enter (use if the scanner sends no Enter/Tab)</span></div>
+  <div class="row"><input type="checkbox" id="setSound"><span>Sound and vibration</span></div>
+  <div class="row"><input type="checkbox" id="setKeyboard"><span>Show on-screen keyboard (for typing a value by hand)</span></div>
+  <div class="btns" style="margin-bottom:20px">
+    <button class="btn" type="button" id="closeSettings">Done</button>
+    <button class="btn" type="button" id="clearCounts">Reset today's counts</button>
+  </div>
+  <h2>Recent checks</h2>
+  <div class="hist" id="hist"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var STEPS=[
+  {label:"LABEL 1",text:"Scan PART NO.",kind:"part"},
+  {label:"LABEL 1",text:"Scan EXT / color",kind:"ext"},
+  {label:"LABEL 2",text:"Scan PART NO.",kind:"part"},
+  {label:"LABEL 2",text:"Scan EXT / color",kind:"ext"}
+];
+var DEFAULTS={partPre:"P",extPre:"C",strict:false,auto:true,sound:true,keyboard:false};
+
+function load(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+var cfg=Object.assign({},DEFAULTS,load("lc_cfg",{}));
+var today=new Date().toISOString().slice(0,10);
+var counts=load("lc_counts",{day:today,pass:0,fail:0});
+if(counts.day!==today)counts={day:today,pass:0,fail:0};
+var hist=load("lc_hist",[]);
+
+var step=0, vals=[undefined,undefined,undefined,undefined], raw=["","","",""], showingResult=false, idle=null;
+var $=function(id){return document.getElementById(id)};
+var scan=$("scan");
+
+// Uppercase and drop everything except letters and digits (hyphens, spaces, control chars).
+function norm(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"")}
+function prefixes(s){return String(s||"").split(",").map(norm).filter(Boolean)}
+// Equal, or equal once a known prefix is removed from the front of ONE side.
+function same(a,b,pre){
+  if(!a||!b)return false;
+  if(a===b)return true;
+  for(var i=0;i<pre.length;i++){var p=pre[i];if(a===p+b||b===p+a)return true}
+  return false;
+}
+window.__labelCheck={norm:norm,same:same};
+
+function render(){
+  for(var i=0;i<4;i++){
+    var s=$("s"+i), b=s.querySelector("b");
+    b.textContent=vals[i]===undefined?"—":(vals[i]===null?"none":raw[i]);
+    s.classList.toggle("cur",!showingResult&&i===step);
+  }
+  var st=STEPS[step]||STEPS[0];
+  $("eyebrow").textContent=st.label;
+  $("big").textContent=st.text;
+  $("skipBtn").hidden=st.kind!=="ext";
+  $("cPass").textContent="✓ "+counts.pass;
+  $("cFail").textContent="✕ "+counts.fail;
+}
+function hint(t){$("hint").textContent=t||""}
+
+function reset(){
+  step=0;vals=[undefined,undefined,undefined,undefined];raw=["","","",""];
+  showingResult=false;$("result").hidden=true;hint("");render();focusScan();
+}
+function advance(){
+  hint("");step++;
+  if(step>=4){evaluate();return}
+  render();
+}
+function accept(input){
+  clearTimeout(idle);
+  var v=norm(input);scan.value="";
+  if(!v)return;
+  if(showingResult)reset();
+  var pp=prefixes(cfg.partPre), ep=prefixes(cfg.extPre), k=STEPS[step].kind;
+  // Guard against scanning the wrong barcode for the step.
+  if(k==="ext"){
+    var myPart=vals[step-1];
+    if(same(v,myPart,pp)){hint("That's the PART NO. Scan the EXT barcode, or tap No EXT.");beep("warn");return}
+  }
+  if(step===2&&vals[1]&&same(v,vals[1],ep)){hint("That's an EXT code. Scan the PART NO. on Label 2.");beep("warn");return}
+  vals[step]=v;raw[step]=String(input).trim();
+  beep("tick");advance();
+}
+function skipExt(){
+  if(showingResult||STEPS[step].kind!=="ext")return;
+  vals[step]=null;raw[step]="";advance();focusScan();
+}
+function undo(){
+  if(showingResult){showingResult=false;$("result").hidden=true;step=3;}
+  else if(step>0){step--;}
+  vals[step]=undefined;raw[step]="";hint("");render();focusScan();
+}
+
+function evaluate(){
+  var pp=prefixes(cfg.partPre), ep=prefixes(cfg.extPre);
+  var r;
+  if(!same(vals[0],vals[2],pp)){
+    r={cls:"fail",head:"MISMATCH",sub:"Part numbers do not match"};
+  }else if(vals[1]&&vals[3]){
+    r=same(vals[1],vals[3],ep)?{cls:"pass",head:"MATCH",sub:"Part and EXT match"}:{cls:"fail",head:"MISMATCH",sub:"EXT / color does not match"};
+  }else if(!vals[1]&&!vals[3]){
+    r={cls:"pass",head:"MATCH",sub:"Part matches (no EXT on either label)"};
+  }else{
+    r=cfg.strict?{cls:"warn",head:"CHECK",sub:"Part matches. EXT on one label only, color not verified"}
+               :{cls:"pass",head:"MATCH",sub:"Part matches. EXT on one label only, color not verified"};
+  }
+  showResult(r);
+}
+function showResult(r){
+  showingResult=true;
+  if(r.cls==="fail")counts.fail++;else counts.pass++;
+  save("lc_counts",counts);
+  hist.unshift({t:new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),cls:r.cls,sub:r.sub,v:raw.slice()});
+  hist=hist.slice(0,50);save("lc_hist",hist);
+  var el=$("result");el.className="result "+r.cls;
+  $("rHead").textContent=r.head;$("rSub").textContent=r.sub;
+  var t=$("rTable");t.innerHTML="";
+  [["L1 part",raw[0]],["L2 part",raw[2]],["L1 EXT",vals[1]===null?"none":raw[1]],["L2 EXT",vals[3]===null?"none":raw[3]]].forEach(function(p){
+    var tr=document.createElement("tr"),a=document.createElement("td"),b=document.createElement("td");
+    a.textContent=p[0];b.textContent=p[1];tr.appendChild(a);tr.appendChild(b);t.appendChild(tr);
+  });
+  el.hidden=false;render();beep(r.cls);focusScan();
+}
+
+// Sound + vibration
+var actx=null;
+function tone(f,d,when){
+  if(!actx)return;var o=actx.createOscillator(),g=actx.createGain();
+  o.type="square";o.frequency.value=f;g.gain.value=.12;o.connect(g);g.connect(actx.destination);
+  var s=actx.currentTime+(when||0);o.start(s);o.stop(s+d);
+}
+function beep(kind){
+  if(!cfg.sound)return;
+  try{
+    if(kind==="tick")tone(1400,.05);
+    else if(kind==="pass"){tone(1300,.12);tone(1700,.18,.15);navigator.vibrate&&navigator.vibrate(120)}
+    else if(kind==="fail"){tone(220,.7);navigator.vibrate&&navigator.vibrate([300,120,300,120,300])}
+    else if(kind==="warn"){tone(600,.15);tone(600,.15,.25);navigator.vibrate&&navigator.vibrate([150,80,150])}
+  }catch(e){}
+}
+
+function focusScan(){
+  if(!$("settings").hidden||!$("start").hidden)return;
+  scan.setAttribute("inputmode",cfg.keyboard?"text":"none");
+  setTimeout(function(){try{scan.focus({preventScroll:true})}catch(e){scan.focus()}},0);
+}
+
+// Scanner input: Enter/Tab ends a scan; optional idle timer for scanners that send no suffix.
+scan.addEventListener("keydown",function(e){
+  if(e.key==="Enter"||e.key==="Tab"){e.preventDefault();accept(scan.value)}
+});
+scan.addEventListener("input",function(){
+  clearTimeout(idle);
+  if(cfg.auto&&!cfg.keyboard)idle=setTimeout(function(){if(scan.value.length>=2)accept(scan.value)},300);
+});
+scan.addEventListener("blur",function(){setTimeout(focusScan,50)});
+
+$("skipBtn").addEventListener("click",skipExt);
+$("undoBtn").addEventListener("click",undo);
+$("resetBtn").addEventListener("click",reset);
+$("result").addEventListener("click",reset);
+document.addEventListener("click",function(e){if(!e.target.closest("button,input,.sheet"))focusScan()});
+
+$("startBtn").addEventListener("click",function(){
+  try{var C=window.AudioContext||window.webkitAudioContext;if(C){actx=new C();actx.resume&&actx.resume()}}catch(e){}
+  $("start").hidden=true;render();focusScan();
+});
+
+function openSettings(){
+  $("setPartPre").value=cfg.partPre;$("setExtPre").value=cfg.extPre;
+  $("setStrict").checked=cfg.strict;$("setAuto").checked=cfg.auto;$("setSound").checked=cfg.sound;$("setKeyboard").checked=cfg.keyboard;
+  var h=$("hist");h.innerHTML="";
+  if(!hist.length){h.textContent="No checks yet."}
+  hist.forEach(function(x){var d=document.createElement("div");d.className=x.cls;
+    d.textContent=x.t+"  "+x.sub+"  |  "+(x.v[0]||"-")+" / "+(x.v[1]||"no EXT")+"  vs  "+(x.v[2]||"-")+" / "+(x.v[3]||"no EXT");h.appendChild(d)});
+  $("settings").hidden=false;
+}
+$("openSettings").addEventListener("click",openSettings);
+$("closeSettings").addEventListener("click",function(){
+  cfg.partPre=$("setPartPre").value;cfg.extPre=$("setExtPre").value;
+  cfg.strict=$("setStrict").checked;cfg.auto=$("setAuto").checked;cfg.sound=$("setSound").checked;cfg.keyboard=$("setKeyboard").checked;
+  save("lc_cfg",cfg);$("settings").hidden=true;render();focusScan();
+});
+$("clearCounts").addEventListener("click",function(){counts={day:today,pass:0,fail:0};save("lc_counts",counts);render()});
+
+render();
+})();
+</script>
+<script>if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(function(){});}</script>
+</body>
+</html>
